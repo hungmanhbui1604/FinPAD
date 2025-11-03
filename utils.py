@@ -137,3 +137,108 @@ def find_optimal_threshold_for_ace(targets, probabilities):
     optimal_idx = np.argmin(ace)
     
     return thresholds[optimal_idx], apcer_values[optimal_idx], bpcer_values[optimal_idx], accuracy_values[optimal_idx], ace[optimal_idx], acc[optimal_idx]
+
+
+class CrossSensorMulticlassDataset(Dataset):
+    def __init__(self, data_dir, sensor, transform=None):
+        self.transform = transform
+        
+        train_dir = os.path.join(data_dir, 'Training', sensor)
+        test_dir = os.path.join(data_dir, 'Testing', sensor)
+        
+        train_live_dir = os.path.join(train_dir, 'Live')
+        train_spoof_dir = os.path.join(train_dir, 'Spoof')
+        test_live_dir = os.path.join(test_dir, 'Live')
+        test_spoof_dir = os.path.join(test_dir, 'Spoof')
+
+        train_materials = os.listdir(train_spoof_dir)
+        test_materials = os.listdir(test_spoof_dir)
+        materials = set(train_materials + test_materials)
+        materials = {material: i for i, material in enumerate(materials, 1)}
+        self.num_classes = len(materials) + 1
+
+        self.samples = []
+        for live_dir in [train_live_dir, test_live_dir]:
+            for filename in os.listdir(live_dir):
+                if filename.lower().endswith(('.png', '.bmp')):
+                    self.samples.append((os.path.join(live_dir, filename), 0))
+        
+        for spoof_dir in [train_spoof_dir, test_spoof_dir]:
+            for material in os.listdir(spoof_dir):
+                material_label = materials[material]
+                for filename in os.listdir(os.path.join(spoof_dir, material)):
+                    if filename.lower().endswith(('.png', '.bmp')):
+                        self.samples.append((os.path.join(spoof_dir, material, filename), material_label))
+    
+    def __len__(self):
+        return len(self.samples)
+    
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+        
+        img_path, label = self.samples[idx]
+        image = Image.open(img_path).convert('RGB')
+        if self.transform:
+            image = self.transform(image)
+        
+        return image, label
+    
+
+class CrossSensorBinaryDataset(Dataset):
+    def __init__(self, data_dir, sensor, transform=None):
+        self.transform = transform
+        
+        train_dir = os.path.join(data_dir, 'Training', sensor)
+        test_dir = os.path.join(data_dir, 'Testing', sensor)
+        
+        train_live_dir = os.path.join(train_dir, 'Live')
+        train_spoof_dir = os.path.join(train_dir, 'Spoof')
+        test_live_dir = os.path.join(test_dir, 'Live')
+        test_spoof_dir = os.path.join(test_dir, 'Spoof')
+
+        self.num_classes = 1
+
+        self.samples = []
+        for live_dir in [train_live_dir, test_live_dir]:
+            for filename in os.listdir(live_dir):
+                if filename.lower().endswith(('.png', '.bmp')):
+                    self.samples.append((os.path.join(live_dir, filename), 0))
+        
+        for spoof_dir in [train_spoof_dir, test_spoof_dir]:
+            for material in os.listdir(spoof_dir):
+                for filename in os.listdir(os.path.join(spoof_dir, material)):
+                    if filename.lower().endswith(('.png', '.bmp')):
+                        self.samples.append((os.path.join(spoof_dir, material, filename), 1))
+    
+    def __len__(self):
+        return len(self.samples)
+    
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+        
+        img_path, label = self.samples[idx]
+        image = Image.open(img_path).convert('RGB')
+        if self.transform:
+            image = self.transform(image)
+        
+        return image, label
+    
+
+class TransformedDataset(Dataset):
+    def __init__(self, dataset, transform):
+        self.dataset = dataset
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.dataset)
+    
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        img, label = self.dataset[idx]
+        transformed_img = self.transform(img)
+
+        return transformed_img, label
