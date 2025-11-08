@@ -4,6 +4,7 @@ import os
 from PIL import Image
 from tqdm import tqdm
 import argparse
+import shutil
 
 
 def extract_one(
@@ -106,6 +107,14 @@ def extract_all(
             except Exception as e:
                 # Use tqdm.write to print messages without breaking the progress bar
                 tqdm.write(f"Error processing {os.path.basename(image_path)}: {str(e)}")
+                
+                # Copy the original image on error
+                try:
+                    output_path = os.path.join(current_output_dir, os.path.basename(image_path))
+                    shutil.copy(image_path, output_path)
+                    tqdm.write(f"Copied original image {os.path.basename(image_path)} to output directory.")
+                except Exception as copy_error:
+                    tqdm.write(f"Failed to copy original image {os.path.basename(image_path)}: {copy_error}")
                 continue
     
     print(f"Processing complete! Foreground images saved to {out_dir}")
@@ -121,8 +130,8 @@ if __name__ == "__main__":
                         help='Block size for adaptive thresholding (must be an odd integer > 1, default: 3)')
     parser.add_argument('-d', '--delta', type=int, default=2,
                         help='Delta value for adaptive thresholding (default: 2)')
-    parser.add_argument('-k', '--kernel_size', type=int, default=15,
-                        help='Kernel size for morphological operations (default: 15)')
+    parser.add_argument('-k', '--kernel_size', type=int, default=3,
+                        help='Kernel size for morphological operations (default: 3)')
     
     args = parser.parse_args()
 
