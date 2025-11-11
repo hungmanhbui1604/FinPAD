@@ -79,7 +79,7 @@ if __name__ == '__main__':
 
     # Training loop
     for epoch in range(config['NUM_EPOCHS']):
-        print(f'Epoch {epoch+1}/{config['NUM_EPOCHS']}')
+        print(f"Epoch {epoch+1}/{config['NUM_EPOCHS']}")
         print('-' * 36)
 
         train_one_epoch(model, train_loader, spoof_criterion, material_criterion, optimizer, device, config)
