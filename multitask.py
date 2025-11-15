@@ -2,6 +2,7 @@ import torch
 import os
 import yaml
 import argparse
+import wandb
 
 from data_utils.data_loaders import get_dataloader
 from models.multitask_models import get_model
@@ -27,6 +28,14 @@ if __name__ == '__main__':
     
     # Set device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    
+    # Initialize wandb
+    wandb.init(
+        project="FinPAD",
+        name=f"multitask_{config['BACKBONE_NAME']}_{config['YEAR']}_{config['TRAIN_SENSOR']}_{config['TEST_SENSOR']}",
+        config=config,
+        tags=["multitask_learning", "spoof_classification", "material_classification"]
+    )
 
     # Get transforms
     transform = get_transforms(config['TRANSFORM_TYPE'])
@@ -82,12 +91,20 @@ if __name__ == '__main__':
         print(f"Epoch {epoch+1}/{config['NUM_EPOCHS']}")
         print('-' * 36)
 
-        train_one_epoch(model, train_loader, spoof_criterion, material_criterion, optimizer, device, config)
-        val_epoch_total_loss = validate_one_epoch(model, val_loader, spoof_criterion, material_criterion, device, config)
+        train_metrics = train_one_epoch(model, train_loader, spoof_criterion, material_criterion, optimizer, device, config)
+        val_metrics = validate_one_epoch(model, val_loader, spoof_criterion, material_criterion, device, config)
+        
+        # Log metrics to wandb
+        wandb.log({
+            'epoch': epoch + 1,
+            'learning_rate': scheduler.get_last_lr()[0] if hasattr(scheduler, 'get_last_lr') else config['LEARNING_RATE'],
+            **train_metrics,
+            **val_metrics
+        })
         
         # Save the best model based on spoof validation loss
-        if val_epoch_total_loss < best_val_loss:
-            best_val_loss = val_epoch_total_loss
+        if val_metrics['val/total_loss'] < best_val_loss:
+            best_val_loss = val_metrics['val/total_loss']
             best_model_state = model.state_dict().copy()
             print(f"New best model found! Saving to {config['MODEL_SAVE_PATH']}")
             torch.save({
@@ -96,6 +113,9 @@ if __name__ == '__main__':
                 'optimizer_state_dict': optimizer.state_dict(),
                 'best_val_loss': best_val_loss,
             }, config['MODEL_SAVE_PATH'])
+            
+            # Save model to wandb
+            wandb.save(config['MODEL_SAVE_PATH'])
         
         scheduler.step()
 
@@ -106,8 +126,23 @@ if __name__ == '__main__':
     # Testing phase
     labels, probabilities = test_one_epoch(model, test_loader, device)
     threshold, apcer, bpcer, ace, accuracy = find_optimal_threshold(labels, probabilities, based_on="ace")
+    
+    # Log final test results to wandb
+    test_results = {
+        'test/APCER': apcer * 100,
+        'test/BPCER': bpcer * 100,
+        'test/ACE': ace * 100,
+        'test/Accuracy': accuracy * 100,
+        'test/Accuracy_star': (1 - ace) * 100,
+        'test/Threshold': threshold
+    }
+    wandb.log(test_results)
+    
     print(f"APCER:      {apcer*100:.2f}%")
     print(f"BPCER:      {bpcer*100:.2f}%")
     print(f"ACE:        {ace*100:.2f}%")
     print(f"Accuracy:   {accuracy*100:.2f}%")
     print(f"Accuracy*:  {(1-ace)*100:.2f}%")
+    
+    # Finish wandb run
+    wandb.finish()

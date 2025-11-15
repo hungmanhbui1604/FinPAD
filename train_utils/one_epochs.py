@@ -60,6 +60,15 @@ def train_one_epoch(model, train_loader, spoof_criterion, material_criterion, op
     
     print(f'Train Loss: Total=[{epoch_total_loss:.4f}] Spoof=[{epoch_spoof_loss:.4f}] Material=[{epoch_material_loss:.4f}]')
     print(f'Train Acc: Spoof=[{epoch_spoof_acc:.2f}] Material=[{epoch_material_acc:.2f}]')
+    
+    # Return metrics for logging
+    return {
+        'train/total_loss': epoch_total_loss,
+        'train/spoof_loss': epoch_spoof_loss,
+        'train/material_loss': epoch_material_loss,
+        'train/spoof_acc': epoch_spoof_acc,
+        'train/material_acc': epoch_material_acc
+    }
 
 def validate_one_epoch(model, val_loader, spoof_criterion, material_criterion, device, config):
     model.eval()
@@ -115,7 +124,15 @@ def validate_one_epoch(model, val_loader, spoof_criterion, material_criterion, d
     
     print(f'Val Loss: Total=[{val_epoch_total_loss:.4f}] Spoof=[{val_epoch_spoof_loss:.4f}] Material=[{val_epoch_material_loss:.4f}]')
     print(f'Val Acc: Spoof=[{val_epoch_spoof_acc:.2f}] Material=[{val_epoch_material_acc:.2f}]')
-    return val_epoch_total_loss
+    
+    # Return metrics for logging
+    return {
+        'val/total_loss': val_epoch_total_loss,
+        'val/spoof_loss': val_epoch_spoof_loss,
+        'val/material_loss': val_epoch_material_loss,
+        'val/spoof_acc': val_epoch_spoof_acc,
+        'val/material_acc': val_epoch_material_acc
+    }
 
 def test_one_epoch(model, test_loader, device):
     model.eval()
@@ -173,6 +190,12 @@ def train_one_epoch_binary(model, train_loader, criterion, optimizer, device, co
     epoch_acc = (running_correct / total_samples) * 100.0
     
     print(f'Train Loss: [{epoch_loss:.4f}] Train Acc: [{epoch_acc:.2f}%]')
+    
+    # Return metrics for logging
+    return {
+        'train/loss': epoch_loss,
+        'train/accuracy': epoch_acc
+    }
 
 
 def validate_one_epoch_binary(model, val_loader, criterion, device, config):
@@ -203,7 +226,12 @@ def validate_one_epoch_binary(model, val_loader, criterion, device, config):
     val_epoch_acc = (val_correct / val_total_samples) * 100.0
     
     print(f'Val Loss: [{val_epoch_loss:.4f}] Val Acc: [{val_epoch_acc:.2f}%]')
-    return val_epoch_loss
+    
+    # Return metrics for logging
+    return {
+        'val/loss': val_epoch_loss,
+        'val/accuracy': val_epoch_acc
+    }
 
 
 def test_one_epoch_binary(model, test_loader, device):
