@@ -38,38 +38,4 @@
 │   │           ├── Gelatine
 │   │           ├── Latex
 │   │           └── WoodGlue
-│   ├── GreenBit
-│   │   ├── Test
-│   │   │   ├── Live
-│   │   │   └── Spoof
-│   │   │       ├── Ecoflex 00-50
-│   │   │       ├── Gelatine
-│   │   │       ├── Latex
-│   │   │       ├── Liquid Ecoflex
-│   │   │       ├── RTV
-│   │   │       └── WoodGlue
-│   │   └── Train
-│   │       ├── Live
-│   │       └── Spoof
-│   │           ├── Ecoflex 00-50
-│   │           ├── Gelatine
-│   │           ├── Latex
-│   │           └── WoodGlue
-│   └── HiScan
-│       ├── Test
-│       │   ├── Live
-│       │   └── Spoof
-│       │       ├── Ecoflex 00-50
-│       │       ├── Gelatine
-│       │       ├── Latex
-│       │       ├── Liquid Ecoflex
-│       │       ├── RTV
-│       │       └── WoodGlue
-│       └── Train
-│           ├── Live
-│           └── Spoof
-│               ├── Ecoflex 00-50
-│               ├── Gelatine
-│               ├── Latex
-│               └── WoodGlue
 ```

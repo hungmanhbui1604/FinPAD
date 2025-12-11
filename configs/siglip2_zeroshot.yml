@@ -1,0 +1,10 @@
+YEAR_PATH: './data'
+TRAIN_SENSOR: 'CrossMatch'
+TEST_SENSOR: 'CrossMatch'
+BINARY_CLASS: true
+TRANSFORM_TYPE: 'siglip2'
+BATCH_SIZE: 32
+NUM_WORKERS: 4
+
+# SigLIP2 model configuration
+MODEL_NAME: 'google/siglip2-base-patch16-224'
