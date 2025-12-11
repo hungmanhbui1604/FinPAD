@@ -5,14 +5,14 @@ from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score
+import numpy as np
 import yaml
 import argparse
 import os
-import copy
 
 from transformers import AutoProcessor, SiglipVisionModel
 from data_utils.data_loaders import get_classic_data_loaders
-from data_utils.transforms import get_transforms
+from train_utils.metrics import compute_metrics
 
 class SigLIP2Finetuner(nn.Module):
     def __init__(self, model_name: str, num_classes: int, freeze_backbone: bool = False):
@@ -86,32 +86,36 @@ def train_epoch(model, dataloader, criterion, optimizer, device, epoch):
     epoch_acc = accuracy_score(all_labels, all_preds)
     return epoch_loss, epoch_acc
 
-def validate(model, dataloader, criterion, device):
+def evaluate(model, dataloader, criterion, device, split_name, return_predictions=False):
     model.eval()
     running_loss = 0.0
     all_preds = []
     all_labels = []
-    
+
     with torch.no_grad():
-        for images, labels in tqdm(dataloader, desc="Validating"):
+        for images, labels in tqdm(dataloader, desc=f"Evaluating on {split_name}"):
             images, labels = images.to(device), labels.to(device)
-            
+
             logits = model(images)
             loss = criterion(logits, labels)
-            
+
             running_loss += loss.item()
             preds = torch.argmax(logits, dim=1)
-            
+
             all_preds.extend(preds.cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
-            
-    val_loss = running_loss / len(dataloader)
-    val_acc = accuracy_score(all_labels, all_preds)
-    return val_loss, val_acc
+
+    eval_loss = running_loss / len(dataloader)
+    eval_acc = accuracy_score(all_labels, all_preds)
+
+    if return_predictions:
+        return eval_loss, eval_acc, np.array(all_labels), np.array(all_preds)
+    else:
+        return eval_loss, eval_acc
 
 def main():
     parser = argparse.ArgumentParser(description='Fine-tune SigLIP2')
-    parser.add_argument('--config', type=str, default='./configs/siglip2_finetune.yaml', help='Path to config file')
+    parser.add_argument('--config', type=str, default='./configs/siglip2_finetune_classic.yaml', help='Path to config file')
     args = parser.parse_args()
 
     # Load config
@@ -153,7 +157,7 @@ def main():
     print("\nStarting Fine-tuning...")
     for epoch in range(1, config['EPOCHS'] + 1):
         train_loss, train_acc = train_epoch(model, train_loader, criterion, optimizer, device, epoch)
-        val_loss, val_acc = validate(model, val_loader, criterion, device)
+        val_loss, val_acc = evaluate(model, val_loader, criterion, device, "validation")
         
         scheduler.step()
         
@@ -169,6 +173,27 @@ def main():
             print(f"Saved best model to {save_path}")
 
     print("\nTraining complete.")
+
+    # 5. Load best model and evaluate on test set
+    print("\nLoading best model for test evaluation...")
+    best_model_path = os.path.join(config['OUTPUT_DIR'], 'best_siglip_finetuned.pth')
+    model.load_state_dict(torch.load(best_model_path))
+
+    # Evaluate on test set
+    test_loss, test_acc, test_labels, test_preds = evaluate(model, test_loader, criterion, device, "test", return_predictions=True)
+
+    # Compute detailed metrics
+    apcer, bpcer, ace, _ = compute_metrics(test_labels, test_preds)
+
+    print(f"\n" + "="*60)
+    print("FINAL TEST RESULTS")
+    print("="*60)
+    print(f"Test Loss:    {test_loss:.4f}")
+    print(f"Test Accuracy: {test_acc:.4f}")
+    print(f"APCER:        {apcer:.4f}")
+    print(f"BPCER:        {bpcer:.4f}")
+    print(f"ACE:          {ace:.4f}")
+    print("="*60)
 
 if __name__ == "__main__":
     main()

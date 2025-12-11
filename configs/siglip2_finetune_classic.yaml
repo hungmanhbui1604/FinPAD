@@ -14,5 +14,5 @@ MODEL_NAME: 'google/siglip2-base-patch16-224'
 
 # Training configuration
 EPOCHS: 10
-LR: 2e-5
+LR: 0.00002
 OUTPUT_DIR: './checkpoints'

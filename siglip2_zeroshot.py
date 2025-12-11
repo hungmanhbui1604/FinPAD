@@ -8,7 +8,7 @@ from transformers import AutoProcessor, AutoModel
 from data_utils.data_loaders import create_data_loader
 from data_utils.transforms import get_transforms
 import os
-from train_utils.metrics import compute_metrics
+from train_utils.metrics import compute_metrics_smooth
 
 
 class SigLIP2ZeroShot:
@@ -146,7 +146,7 @@ class SigLIP2ZeroShot:
         cm = confusion_matrix(all_labels, all_predictions)
 
         # PAD metrics
-        apcer, bpcer, ace, accuracy = compute_metrics(all_labels, all_predictions)
+        apcer, bpcer, ace, accuracy = compute_metrics_smooth(all_labels, all_predictions)
 
         # Print results
         print("\n=== Zero-Shot Evaluation Results ===")
@@ -184,7 +184,7 @@ def main():
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
     
     parser = argparse.ArgumentParser(description='Zero-shot evaluation with SigLIP2')
-    parser.add_argument('--config', type=str, required=True, help='Path to config file')
+    parser.add_argument('--config', type=str, default='./configs/siglip2_finetune.yaml', help='Path to config file')
     args = parser.parse_args()
 
     # Load config

@@ -22,6 +22,26 @@ def compute_metrics(labels, predictions):
     return apcer, bpcer, ace, accuracy
 
 
+def compute_metrics_smooth(labels, predictions):
+    live_mask = (labels == 0)
+    spoof_mask = (labels == 1)
+    
+    live_count = np.sum(live_mask)
+    spoof_count = np.sum(spoof_mask)
+
+    spoof_predictions = predictions[spoof_mask]
+    apcer = np.sum(spoof_predictions == 0) /(spoof_count + 1)
+    
+    live_predictions = predictions[live_mask]
+    bpcer = np.sum(live_predictions == 1) / (live_count + 1)
+
+    ace = (apcer + bpcer) / 2
+
+    accuracy = accuracy_score(labels, predictions)
+
+    return apcer, bpcer, ace, accuracy
+
+
 def find_optimal_threshold(labels, probabilities, based_on):
     unique_probs = np.unique(probabilities)
     sorted_probs = np.sort(unique_probs)
